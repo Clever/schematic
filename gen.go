@@ -18,8 +18,59 @@ func init() {
 	templates = template.Must(bundle.Parse(templates))
 }
 
-// Generate generates code according to the schema.
+func clean(gen []byte) ([]byte, error) {
+	// Remove blank lines added by text/template
+	bytes := newlines.ReplaceAll(gen, []byte(""))
+
+	// Format sources
+	clean, err := format.Source(bytes)
+	// TODO: If formatting errors, return the error instead of the broken,
+	// unformatted code
+	if err != nil {
+		return gen, err
+	}
+	return clean, nil
+}
+
 func (s *Schema) Generate() ([]byte, error) {
+	// Default to hyper schema for backwards compatibility
+	if s.Schema == nil || *s.Schema == "" {
+		return s.generateHyperSchema()
+	}
+	switch *s.Schema {
+	case "http://json-schema.org/schema#", "http://json-schema.org/draft-04/schema#",
+		"http://json-schema.org/draft-03/schema#":
+		return s.generateSchema()
+	case "http://json-schema.org/hyper-schema#", "http://json-schema.org/draft-04/hyper-schema#",
+		"http://json-schema.org/draft-03/hyper-schema#":
+		return s.generateHyperSchema()
+	}
+	return nil, fmt.Errorf("unknown $schema keyword %s", *s.Schema)
+}
+
+func (s *Schema) generateSchema() ([]byte, error) {
+	var buf bytes.Buffer
+
+	name := strings.ToLower(strings.Split(s.Title, " ")[0])
+	templates.ExecuteTemplate(&buf, "package.tmpl", name)
+
+	// TODO: Check if we need time.
+	templates.ExecuteTemplate(&buf, "imports.tmpl", []string{})
+
+	context := struct {
+		Name       string
+		Definition *Schema
+	}{
+		Name:       name,
+		Definition: s,
+	}
+
+	templates.ExecuteTemplate(&buf, "struct.tmpl", context)
+	return clean(buf.Bytes())
+}
+
+// Generate generates code according to the schema.
+func (s *Schema) generateHyperSchema() ([]byte, error) {
 	var buf bytes.Buffer
 
 	for i := 0; i < 2; i++ {
@@ -27,7 +78,7 @@ func (s *Schema) Generate() ([]byte, error) {
 	}
 
 	name := strings.ToLower(strings.Split(s.Title, " ")[0])
-	templates.ExecuteTemplate(&buf, "package.tmpl", name)
+	templates.ExecuteTemplate(&buf, "hyperpackage.tmpl", name)
 
 	// TODO: Check if we need time.
 	templates.ExecuteTemplate(&buf, "imports.tmpl", []string{
@@ -66,15 +117,7 @@ func (s *Schema) Generate() ([]byte, error) {
 		templates.ExecuteTemplate(&buf, "funcs.tmpl", context)
 	}
 
-	// Remove blank lines added by text/template
-	bytes := newlines.ReplaceAll(buf.Bytes(), []byte(""))
-
-	// Format sources
-	clean, err := format.Source(bytes)
-	if err != nil {
-		return buf.Bytes(), err
-	}
-	return clean, nil
+	return clean(buf.Bytes())
 }
 
 // Resolve resolves reference inside the schema.
