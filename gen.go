@@ -34,18 +34,15 @@ func clean(gen []byte) ([]byte, error) {
 
 func (s *Schema) Generate() ([]byte, error) {
 	// Default to hyper schema for backwards compatibility
-	if s.Schema == nil || *s.Schema == "" {
+	if s.Schema == nil {
 		return s.generateHyperSchema()
 	}
 	switch *s.Schema {
 	case "http://json-schema.org/schema#", "http://json-schema.org/draft-04/schema#",
 		"http://json-schema.org/draft-03/schema#":
 		return s.generateSchema()
-	case "http://json-schema.org/hyper-schema#", "http://json-schema.org/draft-04/hyper-schema#",
-		"http://json-schema.org/draft-03/hyper-schema#":
-		return s.generateHyperSchema()
 	}
-	return nil, fmt.Errorf("unknown $schema keyword %s", *s.Schema)
+	return s.generateHyperSchema()
 }
 
 func (s *Schema) generateSchema() ([]byte, error) {
