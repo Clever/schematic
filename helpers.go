@@ -48,7 +48,12 @@ func required(n string, def *Schema) bool {
 }
 
 func fieldTag(n string, required bool) string {
-	return fmt.Sprintf("`%s %s`", jsonTag(n, required), urlTag(n, required))
+	tags := []string{jsonTag(n, required), urlTag(n, required), bsonTag(n, required)}
+	return fmt.Sprintf("`%s`", strings.Join(tags, " "))
+}
+
+func formatTag(n string, v []string) string {
+	return fmt.Sprintf(`%s:"%s"`, n, strings.Join(v, ","))
 }
 
 func jsonTag(n string, required bool) string {
@@ -56,7 +61,15 @@ func jsonTag(n string, required bool) string {
 	if !required {
 		tags = append(tags, "omitempty")
 	}
-	return fmt.Sprintf("json:\"%s\"", strings.Join(tags, ","))
+	return formatTag("json", tags)
+}
+
+func bsonTag(n string, required bool) string {
+	tags := []string{n}
+	if !required {
+		tags = append(tags, "omitempty")
+	}
+	return formatTag("bson", tags)
 }
 
 func urlTag(n string, required bool) string {
@@ -65,7 +78,7 @@ func urlTag(n string, required bool) string {
 		tags = append(tags, "omitempty")
 	}
 	tags = append(tags, "key")
-	return fmt.Sprintf("url:\"%s\"", strings.Join(tags, ","))
+	return formatTag("url", tags)
 }
 
 func contains(n string, r []string) bool {

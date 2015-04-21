@@ -38,7 +38,7 @@ var templates = map[string]string{"field.tmpl": `{{initialCap .Name}} {{.Type}} 
     )
   {{end}}
 {{end}}`,
-	"package.tmpl": `// Generated service client for {{.}} API.
+	"hyperpackage.tmpl": `// Generated service client for {{.}} API.
 //
 // To be able to interact with this API, you have to
 // create a new service:
@@ -48,6 +48,9 @@ var templates = map[string]string{"field.tmpl": `{{initialCap .Name}} {{.Type}} 
 // The Service struct has all the methods you need
 // to interact with {{.}} API.
 //
+package {{.}}
+`,
+	"package.tmpl": `// Generated type definition for {{.}}
 package {{.}}
 `,
 	"service.tmpl": `const (
